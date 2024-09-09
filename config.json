@@ -1,0 +1,83 @@
+{
+  "project_name": "FastAPI Generated Project",
+  "author_name": "John Doe",
+  "description": "This is a FastAPI generated project.",
+  "version": "0.1.0",
+  "postgresql": {
+    "user": "postgres",
+    "password": "postgres"
+  },
+  "tables": [
+    {
+      "name": "user",
+      "columns": [
+        {
+          "name": "id",
+          "type": "Integer",
+          "primary_key": true,
+          "auto_increment": true
+        },
+        {
+          "name": "name",
+          "type": "String",
+          "nullable": false,
+          "max_length": 100,
+          "default": "''"
+        },
+        {
+          "name": "email",
+          "type": "String",
+          "nullable": false,
+          "unique": true,
+          "index": true
+        }
+      ],
+      "relationships": [
+        {
+          "name": "posts",
+          "related_table": "post",
+          "back_populates": "user"
+        }
+      ],
+      "methods": ["GET", "POST", "PUT", "DELETE"]
+    },
+    {
+      "name": "post",
+      "columns": [
+        {
+          "name": "id",
+          "type": "Integer",
+          "primary_key": true,
+          "auto_increment": true
+        },
+        {
+          "name": "title",
+          "type": "String",
+          "nullable": false,
+          "max_length": 100
+        },
+        {
+          "name": "content",
+          "type": "Text",
+          "nullable": false
+        },
+        {
+          "name": "user_id",
+          "type": "Integer",
+          "foreign_key": {
+            "table": "user",
+            "column": "id"
+          }
+        }
+      ],
+      "relationships": [
+        {
+          "name": "user",
+          "related_table": "user",
+          "back_populates": "posts"
+        }
+      ],
+      "methods": ["GET", "POST", "PUT", "DELETE"]
+    }
+  ]
+}

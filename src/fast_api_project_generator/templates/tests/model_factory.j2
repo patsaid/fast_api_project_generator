@@ -1,0 +1,70 @@
+"""
+This module contains factory functions for generating random data for the models.
+"""
+
+import uuid
+from itertools import count
+from faker import Faker
+
+faker = Faker()
+
+id_counter = count(start=1)
+
+{%- macro generate_data(column) -%}
+{%- if column.type == 'String' -%}
+faker.word()
+{%- elif column.type == 'Integer' -%}
+faker.random_int(min=0, max=100)
+{%- elif column.type == 'Boolean' -%}
+faker.boolean()
+{%- elif column.type == 'Float' -%}
+faker.pyfloat(left_digits=2, right_digits=2, positive=True)
+{%- elif column.type == 'Date' -%}
+faker.date_of_birth(minimum_age=18, maximum_age=90).isoformat()
+{%- elif column.type == 'Text' -%}
+faker.text()
+{%- else -%}
+"unknown_type"
+{%- endif -%}
+{%- endmacro -%}
+
+{%- for table in config.tables %}
+def get_random_{{ table.name }}_dict(id_: int = None, **kwargs):
+    """
+    Generate a random {{ table.name }} dictionary.
+
+    Args:
+        id_ (int, optional): The ID of the {{ table.name }}. Defaults to None.
+        {%- for column in table.columns %}
+        {%- if column.type == 'Integer' and column.foreign_key -%}
+        {{ column.foreign_key.column }}_id (int, optional): The ID of the related {{ column.foreign_key.table }}. Defaults to None.
+        {%- endif -%}
+        {%- endfor %}
+        **kwargs: Additional keyword arguments to provide related IDs.
+
+    Returns:
+        dict: A dictionary representing a random {{ table.name }} with the following keys:
+            {%- for column in table.columns %}
+            - {{ column.name }}: The {{ column.name }} of the {{ table.name }} (type: {{ column.type }}).
+            {%- endfor %}
+    """
+    if id_ is None:
+        id_ = next(id_counter)
+    
+    data = {
+        {%- for column in table.columns %}
+        {%- if column.name == 'id' -%}
+        "id": id_,
+        {%- else -%}
+        "{{ column.name }}": {{ generate_data(column) }},
+        {%- endif %}
+        {%- endfor %}
+    }
+
+    {%- for relationship in table.relationships %}
+    if "{{ relationship.name }}" in kwargs:
+        data["{{ relationship.name }}_id"] = kwargs["{{ relationship.name }}"]
+    {%- endfor %}
+
+    return data
+{%- endfor %}

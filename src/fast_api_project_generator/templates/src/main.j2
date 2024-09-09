@@ -1,0 +1,55 @@
+# {{ config.project_name }}/main.py
+
+import logging
+import os
+from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
+
+from .config import Settings
+from .routes import router
+from .database import init_db
+
+settings = Settings()
+
+# Initialize logger
+logging.basicConfig(
+    level=getattr(logging, settings.log_level.upper(), "INFO"),
+    format=settings.log_format
+)
+logger = logging.getLogger(__name__)
+
+# Initialize the FastAPI app with config metadata
+app = FastAPI(
+    title="{{ config.project_name | default('My FastAPI App') }}",
+    description="{{ config.description | default('This is a FastAPI app generated from a config file.') }}",
+    debug=settings.debug,
+    version="{{ config.version | default('0.1.0') }}",
+    contact={
+        "name": "{{ config.author_name | default('John Doe') }}",
+        "email": "{{ config.author_email | default('email@example.com') }}"
+    },
+)
+
+# Include routers
+app.include_router(router)
+
+
+# Redirect root URL ("/") to "/docs"
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse(url="/docs")
+
+
+# Health check endpoint
+@app.get("/health", tags=["Health Check"])
+def health_check():
+    logger.info("Health check endpoint called")
+    return {"status": "healthy"}
+
+
+@app.on_event("startup")
+async def on_startup():
+    # Check if the app is not running in test mode
+    if os.getenv("ENVIRONMENT") != "test":
+        init_db()
+

@@ -1,0 +1,31 @@
+{# Generate import statements for the required SQLAlchemy types #}
+from sqlalchemy import Column, ForeignKey, {{ sqlalchemy_types | join(", ") }}
+from sqlalchemy.orm import relationship
+from .database import Base
+
+{% for table in config.tables %}
+class {{ table.name | capitalize }}(Base):
+    """Model representing the {{ pluralize(table.name) }} table."""
+    
+    __tablename__ = "{{ pluralize(table.name) | lower }}"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    {%- for column in table.columns %}
+    {%- if column.name != 'id' %}
+    {%- set default_value = column.default if column.default else 'None' %}
+    {%- set nullable_value = 'False' if not column.nullable else 'True' %}
+    {%- if column.foreign_key %}
+    {{ column.name }} = Column({{ column.type }}, ForeignKey("{{ pluralize(column.foreign_key.table) | lower }}.{{ column.foreign_key.column }}"), nullable={{ nullable_value }}, default={{ default_value }})
+    {%- else %}
+    {{ column.name }} = Column({{ column.type }}, nullable={{ nullable_value }}, default={{ default_value }})
+    {%- endif %}
+    {%- endif %}
+    {%- endfor %}
+    
+    # Relationships
+    {%- for relationship in table.relationships %}
+    {{ relationship.name }} = relationship("{{ relationship.related_table | capitalize }}", back_populates="{{ relationship.back_populates }}")
+    {%- endfor %}
+
+{% endfor %}

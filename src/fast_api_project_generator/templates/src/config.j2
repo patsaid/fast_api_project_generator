@@ -1,0 +1,19 @@
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    """
+    Application configuration settings.
+    """
+
+    app_name: str = "{{ config.project_name }}"
+    environment: str = "development"  # "production" or "development"
+    debug: bool = True
+    database_url: str
+    test_database_url: str
+    log_level: str
+    log_format: str = "%(levelname)s - %(asctime)s - %(name)s - %(message)s"
+    version: str
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"

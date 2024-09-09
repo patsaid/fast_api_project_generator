@@ -1,0 +1,56 @@
+{# Helper function to generate data dictionary based on table name #}
+{%- macro get_random_data_function(name) -%}
+get_random_{{ name.lower() }}_dict()
+{%- endmacro -%}
+
+{# Import statements #}
+from .model_factory import {% for table in config.tables %}get_random_{{ table.name.lower() }}_dict{% if not loop.last %}, {% endif %}{% endfor %}
+
+{% for table in config.tables %}
+# Tests for {{ table.name }} routes
+def test_create_{{ table.name }}(client):
+    data = {{ get_random_data_function(table.name) }}
+    data.pop("id", None)
+    
+    response = client.post("/{{ pluralize(table.name) }}", json=data)
+    assert response.status_code == 201
+    assert response.json() is not None
+
+def test_read_{{ table.name }}(client):
+    response = client.get("/{{ pluralize(table.name) }}")
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+
+def test_update_{{ table.name }}(client):
+    create_data = {{ get_random_data_function(table.name) }}
+    create_data.pop("id", None)
+    
+    response = client.post("/{{ pluralize(table.name) }}", json=create_data)
+    assert response.status_code == 201
+    item_id = response.json()["id"]
+
+    # Update the entry
+    update_data = {{ get_random_data_function(table.name) }}
+    update_data.pop("id", None)
+    
+    response = client.put(f"/{{ pluralize(table.name) }}/{item_id}", json=update_data)
+    assert response.status_code == 200
+    assert response.json()["id"] == item_id
+
+def test_delete_{{ table.name }}(client):
+    create_data = {{ get_random_data_function(table.name) }}
+    create_data.pop("id", None)
+    
+    response = client.post("/{{ pluralize(table.name) }}", json=create_data)
+    assert response.status_code == 201
+    item_id = response.json()["id"]
+
+    # Delete the entry
+    response = client.delete(f"/{{ pluralize(table.name) }}/{item_id}")
+    assert response.status_code == 200
+
+    # Verify deletion
+    response = client.get("/{{ pluralize(table.name) }}")
+    data = response.json()
+    assert item_id not in [item["id"] for item in data]
+{% endfor %}

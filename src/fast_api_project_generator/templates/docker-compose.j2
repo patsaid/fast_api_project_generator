@@ -1,0 +1,36 @@
+
+
+services:
+    fastapi:
+        build: .
+        ports:
+            - "8000:8000"
+        env_file:
+            - .env
+        environment:
+            - PYTHONPATH=/app/src
+        volumes:
+            - ./src:/app/src  # Bind-mount the source code to the container for hot-reload
+        command: poetry run uvicorn {{ config.project_snake_case }}.main:app --host 0.0.0.0 --port 8000 --reload
+        depends_on:
+            - db
+
+    db:
+        image: postgres:13
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: {{ config.project_snake_case }}_db
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+
+    adminer:
+        image: adminer
+        restart: always
+        ports:
+            - "8080:8080"
+        depends_on:
+            - db
+
+volumes:
+    postgres_data:

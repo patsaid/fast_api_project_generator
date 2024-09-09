@@ -1,0 +1,52 @@
+from pydantic import BaseModel
+from typing import Optional
+from datetime import date, datetime, time
+
+# `Base` class: This is the shared model that contains all common fields for the entity.
+# It's designed to be used as the foundation for other classes, like Create and Update,
+# making it reusable across different scenarios. Fields are optional for partial updates.
+
+# `Create` class: This model is specifically for creating a new record in the database.
+# Fields are mandatory, as they represent the input that is necessary to create a valid
+# entity instance in the system.
+
+# `Update` class: This model is used for updating existing records. Since updates may
+# only involve certain fields, all fields are optional, allowing partial updates.
+
+# `InDB` class: This model represents how the entity is structured in the database,
+# including fields that the user doesn't supply but are part of the database schema,
+# like the `id` field, which is usually auto-generated.
+
+
+{% for table in config.tables %}
+class {{ table.name | capitalize }}Base(BaseModel):
+    """Shared base model for {{ table.name | capitalize }}."""
+    {%- for column in table.columns %}
+    {%- if column.name != 'id' %}
+    {{ column.name }}: Optional[{{ type_map[column.type] }}] = None
+    {%- endif %}
+    {%- endfor %}
+
+
+class {{ table.name | capitalize }}Create(BaseModel):
+    """Model for creating a new {{ table.name | capitalize }} instance."""
+    {%- for column in table.columns %}
+    {%- if column.name != 'id' %}
+    {{ column.name }}: {{ type_map[column.type] }}
+    {%- endif %}
+    {%- endfor %}
+
+
+class {{ table.name | capitalize }}Update(BaseModel):
+    """Model for updating an existing {{ table.name | capitalize }} instance."""
+    {%- for column in table.columns %}
+    {%- if column.name != 'id' %}
+    {{ column.name }}: Optional[{{ type_map[column.type] }}] = None
+    {%- endif %}
+    {%- endfor %}
+
+
+class {{ table.name | capitalize }}InDB({{ table.name | capitalize }}Base):
+    """Model for reading from the database, including fields that exist in the database"""
+    id: int
+{% endfor %}
